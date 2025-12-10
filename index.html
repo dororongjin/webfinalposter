@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mirror Room</title>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="js/script.js" defer></script>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+        background-color: #93b2ca;
+      }
+
+      .wall-img {
+        position: absolute;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        object-fit: fill;
+        z-index: 1;
+      }
+
+      /* 모든 거울 공통 설정 */
+      img[class^="mirror"] {
+        position: absolute;
+        display: block;
+        z-index: 10;
+      }
+
+      /* 모든 인형 공통 설정 */
+      img[class^="doll"] {
+        position: absolute;
+        display: block;
+        z-index: 0;
+      }
+
+      img[class^="lock"] {
+        position: absolute;
+        display: block;
+        z-index: 20;
+        cursor: pointer; /* 마우스 손가락 모양 추가 (중요!) */
+      }
+
+      /* 거울 좌표값 유지 */
+      .mirror1-img {
+        top: 53%;
+        right: 67%;
+        width: 600px;
+        pointer-events: none;
+      }
+      .mirror2-img {
+        top: 10%;
+        right: 67%;
+        width: 530px;
+      }
+      .mirror3-img {
+        top: 30%;
+        right: 46%;
+        width: 640px;
+      }
+      .mirror4-img {
+        top: 42.5%;
+        right: 25.5%;
+        width: 710px;
+      }
+      .mirror5-img {
+        top: 19.5%;
+        right: 12.5%;
+        width: 620px;
+      }
+      .mirror6-img {
+        top: 51%;
+        left: 58%;
+        width: 590px;
+      }
+      .mirror7-img {
+        top: 5%;
+        left: 70%;
+        width: 600px;
+      }
+
+      /* 자물쇠 설정 */
+      /* [공통 설정] 모든 자물쇠에 한 번에 적용 (크기, 애니메이션 등) */
+      img[class^="lock"] {
+        position: absolute;
+        display: block;
+        z-index: 20;
+        cursor: pointer;
+        width: 40px; /* 크기는 여기서 한 번에 조절 */
+        transform-origin: 50% 20%;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      /* [개별 위치] 여기서 자물쇠 위치를 각각 잡아주세요! */
+      .lock1-img {
+        top: 89%;
+        right: 86.2%;
+      }
+      .lock2-img {
+        top: 41%;
+        right: 83.9%;
+      } /* 예시 위치 (수정 필요) */
+      .lock3-img {
+        top: 68.3%;
+        right: 66.7%;
+      } /* 예시 위치 (수정 필요) */
+      .lock4-img {
+        top: 85%;
+        right: 48.5%;
+      } /* 예시 위치 (수정 필요) */
+      .lock5-img {
+        top: 56.5%;
+        right: 32.4%;
+      } /* 예시 위치 (수정 필요) */
+      .lock6-img {
+        top: 86%;
+        right: 20%;
+      } /* 예시 위치 (수정 필요) */
+      .lock7-img {
+        top: 41.6%;
+        right: 7.6%;
+      } /* 예시 위치 (수정 필요) */
+
+      /* 회전 클래스는 그대로 유지 */
+      .unlocked {
+        transform: rotate(30deg);
+      }
+
+      @keyframes floatMirror {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-4px);
+        } /* -10px만큼 위로 올라감 (거리 조절 가능) */
+      }
+
+      /* 2. 각 거울에 시간차 적용 (animation 속성 추가) */
+      /* s(초)를 다르게 해서 제각각 움직이게 만듦 */
+
+      .mirror1-img {
+        animation: floatMirror 4s ease-in-out infinite;
+      }
+      .mirror2-img {
+        animation: floatMirror 5.5s ease-in-out infinite;
+      }
+      .mirror3-img {
+        animation: floatMirror 3.5s ease-in-out infinite;
+      }
+      .mirror4-img {
+        animation: floatMirror 5s ease-in-out infinite;
+      }
+      .mirror5-img {
+        animation: floatMirror 4.5s ease-in-out infinite;
+      }
+      .mirror6-img {
+        animation: floatMirror 5s ease-in-out infinite;
+      }
+      .mirror7-img {
+        animation: floatMirror 3s ease-in-out infinite;
+      }
+
+      .doll1-img {
+        top: 65%;
+        left: 29%;
+        width: 150px;
+      }
+
+      /* 1. 시간: 3.5초로 확실히 늘림 (기존 1.5s -> 3.5s) */
+      .doll1-jump-active {
+        /* cubic-bezier(0.5, 0, 0.5, 1): 
+       시작과 끝은 빠르고, 중간(공중)에서는 아주 부드럽게 느려지는 '벨 곡선' 설정 */
+        animation: superJump 3s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+        transform-origin: center bottom;
+      }
+
+      @keyframes superJump {
+        /* 1. 시작 */
+        0% {
+          transform: translate(0, 0);
+        }
+
+        /* 2. 정점 (딱 중간 지점) */
+        /* 여기서 X축, Y축을 동시에 도달하게 하여 '완벽한 하나의 곡선'을 그림 */
+        50% {
+          /* 높이(-450px)를 충분히 주고, 옆으로(-150px) 이동 */
+          transform: translate(-270px, -370px);
+        }
+
+        /* 3. 끝 (추락) */
+        100% {
+          /* 바닥 뚫고(-300px, 800px) 사라짐 */
+          transform: translate(-420px, -270px);
+        }
+      }
+
+      .doll5-img {
+        top: 15%;
+        left: 0%;
+        width: 150px;
+      }
+
+      /* 1. 시간: 3.5초로 확실히 늘림 (기존 1.5s -> 3.5s) */
+      .doll5-jump2-active {
+        /* cubic-bezier(0.5, 0, 0.5, 1): 
+       시작과 끝은 빠르고, 중간(공중)에서는 아주 부드럽게 느려지는 '벨 곡선' 설정 */
+        animation: superJumpRight 3.5s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+        transform-origin: center bottom;
+      }
+
+      @keyframes superJumpRight {
+        /* 1. 시작 */
+        0% {
+          transform: translate(0, 0);
+        }
+
+        /* 2. 정점 (딱 중간 지점) */
+        /* 여기서 X축, Y축을 동시에 도달하게 하여 '완벽한 하나의 곡선'을 그림 */
+        50% {
+          /* 높이(-450px)를 충분히 주고, 옆으로(-150px) 이동 */
+          transform: translate(380px, 200px);
+        }
+
+        /* 3. 끝 (추락) */
+        100% {
+          /* 바닥 뚫고(-300px, 800px) 사라짐 */
+          transform: translate(420px, 400px);
+        }
+      }
+
+      .doll2-img {
+        bottom: 43%;
+        left: 91%;
+        width: 230px;
+      }
+
+      @keyframes cuckooPeek {
+        0% {
+          transform: rotate(0deg); /* 시작: 가만히 있음 */
+        }
+        20% {
+          transform: rotate(-30deg); /* 슉! 왼쪽으로 30도만큼 기울임 (나옴) */
+        }
+        40% {
+          transform: rotate(-20deg); /* 살짝 돌아옴 (반동) */
+        }
+        60% {
+          transform: rotate(-27deg); /* 다시 살짝 왼쪽으로 (여운) */
+        }
+        100% {
+          transform: rotate(0deg); /* 끝: 제자리로 복귀 */
+        }
+      }
+
+      /* 2. 자바스크립트가 이 클래스를 붙여주면 움직임이 시작됨 */
+      .doll-active {
+        /* 애니메이션 이름, 시간(1.2초), 가속도(부드럽게) 설정 */
+        animation: cuckooPeek 2.5s ease-in-out;
+
+        /* 중요! 인형의 발바닥을 중심으로 회전해야 자연스러움 */
+        transform-origin: bottom center;
+      }
+
+      .doll3-img {
+        top: 55%;
+        left: 39.5%;
+        width: 300px;
+      }
+
+      .doll6-img {
+        top: 55%;
+        left: 39.5%;
+        width: 300px;
+
+        opacity: 0; /* [핵심] 처음엔 안 보이게 숨김 */
+        pointer-events: none;
+      }
+
+      .doll-eye-active {
+        animation: eyeOpen 3.5s ease-in-out forwards;
+      }
+
+      @keyframes eyeOpen {
+        /* 1. 시작: 안 보임 (눈 감음) */
+        0% {
+          opacity: 0;
+        }
+
+        /* 2. 눈을 뜨기 시작 (0.9초 동안 스르륵 나타남) */
+        30% {
+          opacity: 1; /* 완전히 나타남 */
+        }
+
+        /* 3. 응시 (약 1.2초 동안 가만히 쳐다봄) */
+        60% {
+          opacity: 1;
+        }
+
+        /* 4. 다시 눈을 감음 (0.9초 동안 스르륵 사라짐) */
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .doll4-img {
+        bottom: 13%;
+        left: 73.5%;
+        width: 140px;
+
+        opacity: 0; /* [핵심] 처음엔 안 보이게 숨김 */
+        pointer-events: none;
+      }
+
+      .doll7-img {
+        bottom: 13%;
+        left: 74%;
+        width: 130px;
+        opacity: 0; /* [핵심] 처음엔 안 보이게 숨김 */
+        pointer-events: none;
+      }
+
+      /* --- [Doll 7: 나타났다가 '스르륵' 빠르게 사라짐] --- */
+      .doll7-morph-active {
+        animation: morphPart1 5s linear forwards;
+      }
+
+      @keyframes morphPart1 {
+        0% {
+          opacity: 0;
+        }
+        5% {
+          opacity: 1;
+        } /* 빠르게 등장 */
+
+        /* [변신 시작] 20%까지는 선명하게 유지 */
+        20% {
+          opacity: 1;
+        }
+
+        /* [변신 중] 20% -> 30% (약 0.5초) 동안 빠르게 흐려짐 */
+        /* Doll 4가 나타나는 타이밍과 겹쳐서 자연스럽게 보임 */
+        30% {
+          opacity: 0;
+        }
+
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* --- [Doll 4: '스르륵' 빠르게 나타나서 오래 쳐다봄] --- */
+      .doll4-morph-active {
+        animation: morphPart2 5s linear forwards;
+      }
+
+      @keyframes morphPart2 {
+        /* 1. 대기 */
+        0% {
+          opacity: 0;
+        }
+        20% {
+          opacity: 0;
+        } /* Doll 7이 선명할 땐 숨어있음 */
+
+        /* 2. 등장 (교체) */
+        /* 20% -> 30% (약 0.5초) 동안 빠르게 나타남 */
+        30% {
+          opacity: 1;
+        }
+
+        /* 3. 응시 (오래 쳐다보기) */
+        /* 30% ~ 85% 구간: 약 2.7초 동안 가만히 있음 */
+        85% {
+          opacity: 1;
+        }
+
+        /* 4. 퇴장 (천천히 흐려짐) */
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* 타이틀 통이미지 스타일 */
+      .title {
+        position: absolute; /* 화면에 고정 */
+        bottom: 60%;
+        left: 27%;
+        width: 600px;
+        object-fit: cover; /* 화면 비율에 맞춰 꽉 채움 */
+        z-index: 9999; /* 가장 위에 표시 */
+
+        opacity: 0; /* 처음엔 투명해서 안 보임 */
+        pointer-events: none; /* 투명할 때 클릭 방해 안 하도록 설정 */
+
+        /* 3초 동안 부드럽게 나타나는 효과 */
+        transition: opacity 3s ease-in-out;
+      }
+
+      /* 이 클래스가 붙으면 나타남 */
+      .title-visible {
+        opacity: 1; /* 불투명해짐 (보임) */
+        pointer-events: auto; /* 다시 클릭 가능하게 (필요하면) */
+      }
+
+      .star-img {
+        position: absolute;
+        top: 58%;
+        right: 83%;
+        width: 160px;
+
+        opacity: 0; /* [핵심] 처음엔 안 보이게 숨김 */
+        pointer-events: none;
+      }
+
+      @keyframes fadeInEffect {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      /* 3. 자바스크립트가 붙여줄 클래스 */
+      .star-visible {
+        /* 2초 동안 천천히(ease-in) 나타남 */
+        animation: fadeInEffect 2s ease-in forwards;
+      }
+
+      .moon-img {
+        position: absolute;
+        top: 28.5%;
+        right: 29%;
+        width: 140px;
+
+        opacity: 0; /* [핵심] 처음엔 안 보이게 숨김 */
+        pointer-events: none;
+      }
+
+      .moon-visible {
+        /* 2초 동안 천천히(ease-in) 나타남 */
+        animation: fadeInEffect 2s ease-in forwards;
+      }
+
+      .key-img {
+        position: absolute;
+        width: 120px; /* 이미지 크기 조절 */
+        z-index: 9999; /* 무조건 제일 위에 떠야 함 */
+
+        /* [핵심 1] 마우스 클릭이 이미지를 통과하게 만듦 (필수!) */
+        pointer-events: none;
+
+        /* [핵심 2] 이미지의 중심을 마우스 좌표에 맞춤 */
+        transform: translate(-60%, -40%);
+
+        /* (선택사항) 약간의 딜레이를 주면 유령처럼 '스으윽' 따라옴 */
+        transition: left 0.1s ease-out, top 0.1s ease-out;
+      }
+
+      /* t1 이미지 스타일 */
+      .t1-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        top: 93%;
+        left: 33%;
+
+        width: 500px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t1-visible {
+        opacity: 1;
+      }
+
+      .t2-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 0%;
+        left: 2%;
+
+        width: 300px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t2-visible {
+        opacity: 1;
+      }
+
+      .t3-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 48%;
+        left: 4.5%;
+
+        width: 250px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t3-visible {
+        opacity: 1;
+      }
+
+      .t4-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 23%;
+        left: 21%;
+
+        width: 300px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t4-visible {
+        opacity: 1;
+      }
+
+      .t5-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 36%;
+        left: 56%;
+
+        width: 300px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t5-visible {
+        opacity: 1;
+      }
+
+      .t6-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 2%;
+        left: 70%;
+
+        width: 250px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t6-visible {
+        opacity: 1;
+      }
+
+      .t7-img {
+        position: absolute;
+        /* 위치 예시: 화면 중앙 하단 */
+        bottom: 50%;
+        left: 86%;
+
+        width: 150px; /* 크기 조절 필요하면 여기서! */
+        z-index: 10001; /* 타이틀(9999)보다 더 위에 뜨게 설정 */
+
+        opacity: 0; /* 숨김 */
+        pointer-events: none;
+
+        /* 2초 동안 서서히 나타남 */
+        transition: opacity 0.2s ease-in-out;
+      }
+
+      /* 나타나게 하는 클래스 */
+      .t7-visible {
+        opacity: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <img src="asset/wall.png" class="wall-img" />
+
+    <img src="asset/mirror1.png" class="mirror1-img" />
+    <img src="asset/mirror2.png" class="mirror2-img" />
+    <img src="asset/mirror3.png" class="mirror3-img" />
+    <img src="asset/mirror4.png" class="mirror4-img" />
+    <img src="asset/mirror5.png" class="mirror5-img" />
+    <img src="asset/mirror6.png" class="mirror6-img" />
+    <img src="asset/mirror7.png" class="mirror7-img" />
+
+    <img src="asset/lock1.png" class="lock1-img" id="lock1" />
+    <img src="asset/lock2.png" class="lock2-img" id="lock2" />
+    <img src="asset/lock3.png" class="lock3-img" id="lock3" />
+    <img src="asset/lock4.png" class="lock4-img" id="lock4" />
+    <img src="asset/lock5.png" class="lock5-img" id="lock5" />
+    <img src="asset/lock6.png" class="lock6-img" id="lock6" />
+    <img src="asset/lock7.png" class="lock7-img" id="lock7" />
+
+    <img src="asset/doll2.png" class="doll2-img" id="doll2" />
+    <img src="asset/doll1.png" class="doll1-img" id="doll1" />
+    <img src="asset/doll5.png" class="doll5-img" id="doll5" />
+    <img src="asset/doll3.png" class="doll3-img" id="doll3" />
+    <img src="asset/doll6.png" class="doll6-img" id="doll6" />
+    <img src="asset/doll4.png" class="doll4-img" id="doll4" />
+    <img src="asset/doll7.png" class="doll7-img" id="doll7" />
+
+    <img src="asset/star.png" class="star-img" id="star" />
+    <img src="asset/moon.png" class="moon-img" id="moon" />
+
+    <img src="asset/key.png" id="key" class="key-img" />
+
+    <img src="asset/title.png" class="title" id="title" />
+    <img src="asset/t1.svg" class="t1-img" id="t1" />
+    <img src="asset/t2.svg" class="t2-img" id="t2" />
+    <img src="asset/t3.png" class="t3-img" id="t3" />
+    <img src="asset/t4.png" class="t4-img" id="t4" />
+    <img src="asset/t5.png" class="t5-img" id="t5" />
+    <img src="asset/t6.png" class="t6-img" id="t6" />
+    <img src="asset/t7.png" class="t7-img" id="t7" />
+
+    <audio src="asset/locking.mp3" id="sound-locking"></audio>
+  </body>
+</html>
